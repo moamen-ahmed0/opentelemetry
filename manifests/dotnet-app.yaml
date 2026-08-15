@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=none
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet-app
+  namespace: otel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dotnet-app
+  template:
+    metadata:
+      labels:
+        app: dotnet-app
+    spec:
+      containers:
+        - name: dotnet-app
+          image: dotnet-app:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ObservabilitySettings__ServiceName
+              value: "simple-service-dotnet"
+            # In-cluster DNS name for the collector's Service, port 4317 (OTLP/gRPC).
+            - name: ObservabilitySettings__CollectorUrl
+              value: "http://otel-collector-collector.otel.svc.cluster.local:4317"
+            # Must match the bearertokenauth token in manifests/otel-collector.yaml.
+            - name: ObservabilitySettings__BearerToken
+              value: "44930df933a84ab9838328d521f63e8c853b0cf5a56e5ca98a2d51b2fca294dc"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+              

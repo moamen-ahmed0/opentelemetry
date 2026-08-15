@@ -20,8 +20,9 @@ Full step-by-step instructions are in [RUNBOOK.md](RUNBOOK.md). Summary:
 1. Create the kind cluster (`kind/kind-config.yaml`, one control-plane + one worker node).
 2. Install cert-manager and the OpenTelemetry Operator.
 3. Apply `manifests/otel-collector.yaml` to deploy the collector.
-4. Port-forward the collector's OTLP port and tail its logs.
-5. Run the Python or .NET demo app to send metrics.
+4. Build the app images, load them into kind, and apply `manifests/python-app.yaml` /
+   `manifests/dotnet-app.yaml` to run the demo apps as pods in the cluster.
+5. Tail the collector's logs to see the metrics and logs it receives.
 
 ## Repo layout
 
@@ -30,6 +31,8 @@ Full step-by-step instructions are in [RUNBOOK.md](RUNBOOK.md). Summary:
 | `kind/kind-config.yaml` | kind cluster topology (control-plane + worker) |
 | `manifests/otel-collector.yaml` | `OpenTelemetryCollector` custom resource — the collector's own config |
 | `manifests/otel-collector-defaults.yaml` | Reference only: every default the CRD/operator fills in that isn't set above |
+| `manifests/python-app.yaml` | Deployment running the Python demo app in-cluster |
+| `manifests/dotnet-app.yaml` | Deployment running the .NET demo app in-cluster |
 | `python-app/` | Python demo app (OTel Python SDK) |
 | `dotnet-app/` | .NET demo app (OTel .NET SDK), same metrics as the Python app |
 | `RUNBOOK.md` | Full step-by-step commands to stand up and tear down the demo |
@@ -44,6 +47,6 @@ attribute via the `resource` processor.
 ## Teardown
 
 ```
-kubectl delete -f manifests/otel-collector.yaml
+kubectl delete -f manifests/python-app.yaml -f manifests/dotnet-app.yaml -f manifests/otel-collector.yaml
 kind delete cluster --name otel
 ```

@@ -26,26 +26,32 @@ kubectl apply -f manifests/otel-collector.yaml
 kubectl -n otel get opentelemetrycollector
 kubectl -n otel get pods
 
-## 5. Run the demo
+## 5. Build and deploy the demo apps in-cluster
 
-# Terminal 1 - expose the collector's OTLP port
-kubectl -n otel port-forward svc/otel-collector-collector 4317:4317
+# Build the images
+docker build -t python-app:local ./python-app
+docker build -t dotnet-app:local ./dotnet-app
 
-# Terminal 2 - tail the collector's received metrics
+# Load them into kind (kind nodes can't see the local Docker image store otherwise)
+kind load docker-image python-app:local --name otel
+kind load docker-image dotnet-app:local --name otel
+
+# Deploy both apps as pods in the otel namespace
+kubectl apply -f manifests/python-app.yaml
+kubectl apply -f manifests/dotnet-app.yaml
+kubectl -n otel get pods
+
+## 6. Watch the telemetry flow
+
+# Tail the collector's received metrics/logs
 kubectl -n otel logs -f deployment/otel-collector-collector
 # ...or with k9s: `k9s -n otel`, select the otel-collector-collector pod, press `l` for logs
 
-# Terminal 3 - send metrics (pick one)
-cd python-app
-python3 -m venv .venv
-./.venv/bin/pip install -r requirements.txt
-./.venv/bin/python app.py
-
-# ...or the .NET equivalent
-cd dotnet-app
-dotnet run
+# Tail an app's own output
+kubectl -n otel logs -f deployment/python-app
+kubectl -n otel logs -f deployment/dotnet-app
 
 ## Teardown
 
-kubectl delete -f manifests/otel-collector.yaml
+kubectl delete -f manifests/python-app.yaml -f manifests/dotnet-app.yaml -f manifests/otel-collector.yaml
 kind delete cluster --name otel
