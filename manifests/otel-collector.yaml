@@ -60,11 +60,15 @@ spec:
       debug:
         verbosity: basic
 
-    # Wires receivers -> processors -> exporters together. Metrics only for this demo.
+    # Wires receivers -> processors -> exporters together. Metrics and logs for this demo.
     service:
       extensions: [bearertokenauth]
       pipelines:
         metrics:
+          receivers: [otlp]
+          processors: [batch, resource, memory_limiter]
+          exporters: [debug]
+        logs:
           receivers: [otlp]
           processors: [batch, resource, memory_limiter]
           exporters: [debug]
