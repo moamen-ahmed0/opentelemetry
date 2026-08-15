@@ -1,0 +1,151 @@
+# yaml-language-server: $schema=none
+# Reference only — NOT applied anywhere.
+#
+# This is the live `otel-collector` OpenTelemetryCollector CR as returned by the API server
+# (`kubectl -n otel get opentelemetrycollector otel-collector -o yaml`), which merges in every
+# CRD-schema default for fields our otel-collector.yaml never sets. Useful for seeing what the
+# operator fills in behind the scenes, e.g. `replicas: 1`, `upgradeStrategy: automatic`, and the
+# auto-injected self-monitoring `config.service.telemetry.metrics` block.
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: otel
+spec:
+  config:
+    exporters:
+      debug:
+        verbosity: detailed
+    processors:
+      batch: {}
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    service:
+      pipelines:
+        metrics:
+          exporters:
+            - debug
+          processors:
+            - memory_limiter
+            - batch
+          receivers:
+            - otlp
+      # Auto-injected by the operator: the collector's own self-monitoring metrics,
+      # not something we asked for in otel-collector.yaml.
+      telemetry:
+        metrics:
+          readers:
+            - pull:
+                exporter:
+                  prometheus:
+                    host: 0.0.0.0
+                    port: 8888
+  configVersions: 3
+  daemonSetUpdateStrategy: {}
+  deploymentUpdateStrategy: {}
+  httpRoute:
+    enabled: false
+    gateway: ""
+  image: otel/opentelemetry-collector-contrib:0.158.0
+  ingress:
+    route: {}
+  ipFamilyPolicy: SingleStack
+  managementState: managed
+  mode: deployment
+  networkPolicy: {}
+  observability:
+    metrics: {}
+  podDnsConfig: {}
+  replicas: 1
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Defaults for the optional target-allocator sidecar (unused — we never enable it).
+  targetAllocator:
+    allocationStrategy: consistent-hashing
+    collectorNotReadyGracePeriod: 30s
+    collectorTargetReloadInterval: 30s
+    filterStrategy: relabel-config
+    observability:
+      metrics: {}
+    prometheusCR:
+      evaluationInterval: 30s
+      podMonitorNamespaceSelector: {}
+      probeNamespaceSelector: {}
+      scrapeConfigNamespaceSelector: {}
+      scrapeInterval: 30s
+      serviceMonitorNamespaceSelector: {}
+    resources: {}
+  upgradeStrategy: automatic
+
+# ---------------------------------------------------------------------------
+# The block above comes from the live CR (operator's mutating webhook +
+# CRD schema defaults for paths we already touch). It does NOT cover CRD
+# schema defaults nested under fields we never set at all — those only
+# apply once you populate the parent (e.g. add an item to `volumes`, set
+# `additionalContainers`, enable `targetAllocator.mtls`). Extracted by
+# walking `kubectl get crd opentelemetrycollectors.opentelemetry.io -o json`
+# .spec.versions[v1beta1].schema.openAPIV3Schema, dotted paths below:
+#
+# additionalContainers[].env[].valueFrom.configMapKeyRef.name = ""
+# additionalContainers[].env[].valueFrom.fileKeyRef.optional = false
+# additionalContainers[].env[].valueFrom.secretKeyRef.name = ""
+# additionalContainers[].envFrom[].configMapRef.name = ""
+# additionalContainers[].envFrom[].secretRef.name = ""
+# additionalContainers[].livenessProbe.grpc.service = ""
+# additionalContainers[].ports[].protocol = "TCP"
+# additionalContainers[].readinessProbe.grpc.service = ""
+# additionalContainers[].startupProbe.grpc.service = ""
+# env[].valueFrom.configMapKeyRef.name = ""
+# env[].valueFrom.fileKeyRef.optional = false
+# env[].valueFrom.secretKeyRef.name = ""
+# envFrom[].configMapRef.name = ""
+# envFrom[].secretRef.name = ""
+# initContainers[].env[].valueFrom.configMapKeyRef.name = ""
+# initContainers[].env[].valueFrom.fileKeyRef.optional = false
+# initContainers[].env[].valueFrom.secretKeyRef.name = ""
+# initContainers[].envFrom[].configMapRef.name = ""
+# initContainers[].envFrom[].secretRef.name = ""
+# initContainers[].livenessProbe.grpc.service = ""
+# initContainers[].ports[].protocol = "TCP"
+# initContainers[].readinessProbe.grpc.service = ""
+# initContainers[].startupProbe.grpc.service = ""
+# ports[].protocol = "TCP"
+# targetAllocator.env[].valueFrom.configMapKeyRef.name = ""
+# targetAllocator.env[].valueFrom.fileKeyRef.optional = false
+# targetAllocator.env[].valueFrom.secretKeyRef.name = ""
+# targetAllocator.mtls.tls.certificateAuthorityCertificate.configMap.key = "ca.crt"
+# targetAllocator.mtls.useCertManager = true
+# volumes[].azureDisk.fsType = "ext4"
+# volumes[].azureDisk.readOnly = false
+# volumes[].cephfs.secretRef.name = ""
+# volumes[].cinder.secretRef.name = ""
+# volumes[].configMap.name = ""
+# volumes[].csi.nodePublishSecretRef.name = ""
+# volumes[].flexVolume.secretRef.name = ""
+# volumes[].iscsi.iscsiInterface = "default"
+# volumes[].iscsi.secretRef.name = ""
+# volumes[].projected.sources[].configMap.name = ""
+# volumes[].projected.sources[].secret.name = ""
+# volumes[].rbd.keyring = "/etc/ceph/keyring"
+# volumes[].rbd.pool = "rbd"
+# volumes[].rbd.secretRef.name = ""
+# volumes[].rbd.user = "admin"
+# volumes[].scaleIO.fsType = "xfs"
+# volumes[].scaleIO.secretRef.name = ""
+# volumes[].scaleIO.storageMode = "ThinProvisioned"
+# volumes[].storageos.secretRef.name = ""
+#
+# Everything else not listed above (podSecurityContext, affinity, tolerations,
+# nodeSelector, autoscaler, serviceAccount, hostNetwork, priorityClassName, ...)
+# has no schema-level default at all — it's simply omitted until you set it.

@@ -1,0 +1,15 @@
+# Python
+python-app/.venv/
+__pycache__/
+*.pyc
+
+# .NET
+dotnet-app/bin/
+dotnet-app/obj/
+
+# Misc
+*.bak
+.DS_Store
+
+# Useful Commands 
+useful-commands.md

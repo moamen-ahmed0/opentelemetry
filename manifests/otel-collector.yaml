@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=none
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel-collector
+  namespace: otel
+spec:
+  # Run as a plain Deployment (as opposed to daemonset/sidecar/statefulset).
+  mode: deployment
+  image: otel/opentelemetry-collector-contrib:0.158.0
+  # Caps the collector's pod; memory_limiter below is set relative to this.
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  config:
+    # Validates the Authorization: Bearer header on incoming OTLP requests.
+    extensions:
+      bearertokenauth:
+        scheme: "Bearer"
+        token: "44930df933a84ab9838328d521f63e8c853b0cf5a56e5ca98a2d51b2fca294dc"
+
+    # How data gets in: OTLP over gRPC (4317) and HTTP (4318), bound to
+    # 0.0.0.0 so `kubectl port-forward` can reach it (not just the pod IP).
+    # Both protocols require the bearer token configured above.
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            auth:
+              authenticator: bearertokenauth
+          http:
+            endpoint: 0.0.0.0:4318
+            auth:
+              authenticator: bearertokenauth
+
+    # What happens to data in transit before export.
+    processors:
+      # Groups data points into batches before export, instead of sending each one individually.
+      batch:
+        timeout: 20s
+      # Drops/refuses data before the collector runs out of memory, based on resources.limits.memory above.
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      # Tags every resource passing through with a static env label.
+      resource:
+        attributes:
+          - action: upsert # upsert → Add if missing or update the existing value. 
+            key: environment
+            value: dev
+          - action: insert # insert → Add only if missing; don't overwrite an existing value.
+            key: application.type
+            value: "application"
+            
+    # Where data goes out: for this demo, just print it to the collector's own pod logs.
+    exporters:
+      debug:
+        verbosity: basic
+
+    # Wires receivers -> processors -> exporters together. Metrics only for this demo.
+    service:
+      extensions: [bearertokenauth]
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [batch, resource, memory_limiter]
+          exporters: [debug]
