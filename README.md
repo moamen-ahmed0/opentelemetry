@@ -1,12 +1,11 @@
 # OpenTelemetry Demo
 
-A minimal, end-to-end OpenTelemetry demo: a local kind Kubernetes cluster running the
-OpenTelemetry Collector (via the OpenTelemetry Operator), receiving metrics over
-OTLP/gRPC from a sample app — available in both Python and .NET — and printing them
-to the collector's logs.
+A OpenTelemetry demo: a local kind Kubernetes cluster running the
+OpenTelemetry Collector (via the OpenTelemetry Operator), receiving metrics and logs over
+OTLP/gRPC from a sample app — available in both Python and .NET.
 
 ```
-demo app (Python or .NET)  --OTLP/gRPC, bearer token-->  OTel Collector (in kind)  --> debug exporter (pod logs)
+demo app (Python or .NET)  --OTLP/gRPC, bearer token-->  OTel Collector (in kind)  --> pod logs + Prometheus (:7500)
 ```
 
 ## Prerequisites
@@ -22,7 +21,7 @@ Full step-by-step instructions are in [RUNBOOK.md](RUNBOOK.md). Summary:
 3. Apply `manifests/otel-collector.yaml` to deploy the collector.
 4. Build the app images, load them into kind, and apply `manifests/python-app.yaml` /
    `manifests/dotnet-app.yaml` to run the demo apps as pods in the cluster.
-5. Tail the collector's logs to see the metrics and logs it receives.
+5. Tail the collector's logs or scrape `:7500/metrics` to see the telemetry.
 
 ## Repo layout
 

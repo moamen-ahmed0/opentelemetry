@@ -51,6 +51,10 @@ kubectl -n otel logs -f deployment/otel-collector-collector
 kubectl -n otel logs -f deployment/python-app
 kubectl -n otel logs -f deployment/dotnet-app
 
+# Scrape the Prometheus exporter directly
+kubectl -n otel port-forward svc/otel-collector-collector 7500:7500
+curl http://localhost:7500/metrics
+
 ## Teardown
 
 kubectl delete -f manifests/python-app.yaml -f manifests/dotnet-app.yaml -f manifests/otel-collector.yaml

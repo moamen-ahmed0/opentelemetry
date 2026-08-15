@@ -55,10 +55,18 @@ spec:
             key: application.type
             value: "application"
             
-    # Where data goes out: for this demo, just print it to the collector's own pod logs.
+    # Where data goes out: print to the collector's own pod logs, and expose
+    # metrics on :7500/metrics for Prometheus to scrape.
     exporters:
       debug:
         verbosity: basic
+        
+      # Prometheus exporter, which exposes metrics on :7500/metrics for Prometheus to scrape.
+      prometheus:
+        endpoint: 0.0.0.0:7500
+        resource_to_telemetry_conversion: # Convert OTel resource attributes into Prometheus labels
+          enabled: true
+        enable_open_metrics: true # Expose metrics using the OpenMetrics format
 
     # Wires receivers -> processors -> exporters together. Metrics and logs for this demo.
     service:
@@ -67,8 +75,9 @@ spec:
         metrics:
           receivers: [otlp]
           processors: [batch, resource, memory_limiter]
-          exporters: [debug]
+          exporters: [debug, prometheus]
         logs:
           receivers: [otlp]
           processors: [batch, resource, memory_limiter]
           exporters: [debug]
+          
